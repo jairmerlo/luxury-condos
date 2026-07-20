@@ -1,7 +1,11 @@
 .side-list {
   width: 50%;
   max-width: 500px;
+  height: 100%;
   padding-left: 15px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .side-list--hidden {
@@ -10,11 +14,24 @@
 
 .side-list-title {
   font-size: 18px;
-  margin-bottom: 16px;
+  margin: 0 0 16px;
 }
 
 .side-list-items {
   font-size: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.side-list-group {
+  margin-bottom: 16px;
+}
+
+.side-list-group-items {
   list-style: none;
   padding: 0;
   margin: 0;

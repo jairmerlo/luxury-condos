@@ -93,18 +93,23 @@
 .map-view__cluster {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 10px;
-  background: #000;
-  border-radius: 4px;
+  align-items: center;
   cursor: pointer;
 }
 
 .map-view__cluster-name {
+  padding: 6px 10px;
+  background: #000;
   color: #fff;
+  border-radius: 3px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  margin-top: -8px;
+}
+
+.map-view__cluster-name:first-child {
+  margin-top: 0;
 }
 
 .map-view__info {
@@ -114,4 +119,26 @@
 
 .map-view__info strong {
   font-size: 15px;
+}
+
+/* Google Maps wraps our MapViewInfo content in its own rounded, shadowed
+   bubble and adds a default close button. We render our own close X inside
+   the neighborhood header, so strip the default chrome here. */
+.gm-style-iw.gm-style-iw-c {
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.gm-style-iw-d {
+  overflow: hidden !important;
+  padding: 0;
+}
+
+.gm-style-iw-t::after {
+  display: none;
+}
+
+button.gm-ui-hover-effect {
+  display: none !important;
 }

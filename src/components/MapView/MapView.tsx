@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MarkerUtils, type MarkerClusterer as MarkerClustererType } from "@googlemaps/markerclusterer";
+import { createRoot, type Root } from "react-dom/client";
 import { MapLoader } from "./MapLoader";
-import { MarkerClustererElement } from "../../helpers/map";
-import { loadMarkerClusterer } from "../../utils";
+import { MapViewInfo } from "../MapViewInfo";
 import type { Building, GetBuildingsResponse } from "../../interfaces/buildings";
 import type { GeocodedBuilding } from "../../interfaces/map";
 import "./MapView.css";
 import { SideList } from "../SideList";
+
+const slugify = (name: string) => name.trim().toLowerCase().replace(/\s+/g, "-");
 
 interface MapViewProps {
   data?: GetBuildingsResponse;
@@ -72,8 +73,10 @@ interface MapCanvasProps {
 const MapCanvas = ({ buildings, isLoading }: MapCanvasProps) => {
   const mapNodeRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const clustererRef = useRef<MarkerClustererType | null>(null);
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const infoContainerRef = useRef<HTMLDivElement | null>(null);
+  const infoRootRef = useRef<Root | null>(null);
 
   useEffect(() => {
     if (!mapNodeRef.current || map) return;
@@ -99,10 +102,9 @@ const MapCanvas = ({ buildings, isLoading }: MapCanvasProps) => {
     let cancelled = false;
 
     (async () => {
-      const [{ AdvancedMarkerElement }, { MarkerClusterer }] = await Promise.all([
-        google.maps.importLibrary("marker") as Promise<google.maps.MarkerLibrary>,
-        loadMarkerClusterer(),
-      ]);
+      const { AdvancedMarkerElement } = (await google.maps.importLibrary(
+        "marker",
+      )) as google.maps.MarkerLibrary;
 
       const geocoded = buildings
         .map((building): GeocodedBuilding | null => {
@@ -113,47 +115,46 @@ const MapCanvas = ({ buildings, isLoading }: MapCanvasProps) => {
 
       if (cancelled) return;
 
-      const markers = geocoded.map((building) => {
+      markersRef.current.forEach((marker) => (marker.map = null));
+
+      markersRef.current = geocoded.map((building) => {
         const pin = document.createElement("div");
         pin.className = "map-view__pin";
         pin.textContent = building.name;
 
         const marker = new AdvancedMarkerElement({
+          map,
           position: building.position,
           content: pin,
           title: building.name,
         });
 
         marker.addListener("click", () => {
-          if (!infoWindowRef.current) return;
-          infoWindowRef.current.setContent(`
-            <div class="map-view__info">
-              <strong>${building.name}</strong>
-              <p>${building.address}</p>
-              <p>${building.beds} units · ${building.floors} floors · ${building.year}</p>
-            </div>
-          `);
-          infoWindowRef.current.open({ map, anchor: marker });
+          const infoWindow = infoWindowRef.current;
+          if (!infoWindow) return;
+
+          if (!infoContainerRef.current) {
+            infoContainerRef.current = document.createElement("div");
+            infoRootRef.current = createRoot(infoContainerRef.current);
+          }
+
+          infoRootRef.current?.render(
+            <MapViewInfo
+              title={building.neighborhood}
+              buildingName={building.name}
+              address={building.address}
+              unitBuilding={Number(building.unitBuilding)}
+              year={Number(building.year)}
+              url={`/building/${slugify(building.name)}`}
+              onClose={() => infoWindow.close()}
+            />,
+          );
+
+          infoWindow.setContent(infoContainerRef.current);
+          infoWindow.open({ map, anchor: marker });
         });
 
         return marker;
-      });
-
-      clustererRef.current?.setMap(null);
-      clustererRef.current = new MarkerClusterer({
-        map,
-        markers,
-        renderer: {
-          render: ({ markers: clusterMarkers, position }) =>
-            MarkerClustererElement({
-              names: clusterMarkers
-                .filter(MarkerUtils.isAdvancedMarker)
-                .map((marker) => marker.title)
-                .filter((title): title is string => Boolean(title)),
-              position,
-              AdvancedMarkerElement,
-            }),
-        },
       });
 
       if (geocoded.length === 1) {
@@ -173,8 +174,9 @@ const MapCanvas = ({ buildings, isLoading }: MapCanvasProps) => {
 
   useEffect(() => {
     return () => {
-      clustererRef.current?.setMap(null);
+      markersRef.current.forEach((marker) => (marker.map = null));
       infoWindowRef.current?.close();
+      infoRootRef.current?.unmount();
     };
   }, []);
 

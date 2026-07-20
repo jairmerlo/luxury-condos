@@ -8,10 +8,12 @@ export interface Building {
     codBuilding: string;
     coduser_cpanel: string;
     type_building: string;
+    neighborhood: string;
     neighborhood_ids: string[];
     address: string;
     lat?: string | number;
     lng?: string | number;
+    unitBuilding: string
 }
 
 export interface Neighborhood {

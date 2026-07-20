@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useGetBuildingsQuery } from "../../app/api/getBuildings";
 import { useAppDispatch, useUi } from "../../app/hooks";
 import { setBuildingsFilters } from "../../app/slices/ui";
@@ -11,11 +11,20 @@ export const PropertiesList = () => {
 
     const dispatch = useAppDispatch();
     const { data, isLoading, isError } = useGetBuildingsQuery({
-        name: nameSelected,
-        neighborhood: neighborhoodSelected,
         page: 1,
         limit: 1000,
     });
+
+    const filteredData = useMemo(() => {
+        if (!data) return data;
+
+        const buildings = [...data.data.buildings]
+            .sort((a, b) => a.neighborhood.localeCompare(b.neighborhood))
+            .filter((building) => !nameSelected || building.name.toLowerCase().includes(nameSelected.toLowerCase()))
+            .filter((building) => !neighborhoodSelected || building.neighborhood === neighborhoodSelected);
+
+        return { ...data, data: { ...data.data, buildings } };
+    }, [data, nameSelected, neighborhoodSelected]);
 
     useEffect(() => {
         if (!data) return;
@@ -31,9 +40,9 @@ export const PropertiesList = () => {
             <Header />
             {
                 typeOfView === "map" ? (
-                    <MapView data={data} isLoading={isLoading} isError={isError} />
+                    <MapView data={filteredData} isLoading={isLoading} isError={isError} />
                 ) : (
-                    <ListCards data={data} isLoading={isLoading} isError={isError} />
+                    <ListCards data={filteredData} isLoading={isLoading} isError={isError} />
                 )
             }
         </>

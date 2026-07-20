@@ -22,13 +22,3 @@ export function loadGoogleMaps() {
     ]);
   });
 }
-
-export function loadMarkerClusterer() {
-  return lazyTool("marker-clusterer", async () => {
-    const mod = await import("@googlemaps/markerclusterer");
-    return {
-      MarkerClusterer: mod.MarkerClusterer,
-      SuperClusterAlgorithm: mod.SuperClusterAlgorithm,
-    };
-  });
-}

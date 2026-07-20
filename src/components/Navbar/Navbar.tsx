@@ -13,6 +13,8 @@ export const Navbar = () => {
                 <input
                     type="text"
                     placeholder="Search Condos"
+                    value={nameSelected}
+                    onChange={(e) => dispatch(setNameSelected(e.target.value))}
                 />
 
                 <button>
